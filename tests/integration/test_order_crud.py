@@ -1,6 +1,7 @@
 """Integration tests for Order CRUD operations."""
 
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 
 from app.domain.exceptions import NotFoundError, ValidationError
 from app.schemas import CustomerCreateDTO, OrderCreateDTO, OrderItemCreateDTO
@@ -137,34 +138,26 @@ async def test_create_order_product_out_of_stock(order_service, sample_customer,
 @pytest.mark.asyncio
 async def test_create_order_invalid_quantity(order_service, sample_customer):
     """Test creating order with invalid quantity."""
-    order_data = OrderCreateDTO(
-        customer_id=sample_customer.id,
-        items=[
-            OrderItemCreateDTO(
-                product_id=1,
-                quantity=0,  # Invalid
-            )
-        ],
-    )
-
-    with pytest.raises(ValidationError) as exc_info:
-        await order_service.create_order(order_data)
-
-    assert "Quantity" in exc_info.value.message
+    with pytest.raises(PydanticValidationError):
+        OrderCreateDTO(
+            customer_id=sample_customer.id,
+            items=[
+                OrderItemCreateDTO(
+                    product_id=1,
+                    quantity=0,  # Invalid
+                )
+            ],
+        )
 
 
 @pytest.mark.asyncio
 async def test_create_order_empty_items(order_service, sample_customer):
     """Test creating order with empty items list."""
-    order_data = OrderCreateDTO(
-        customer_id=sample_customer.id,
-        items=[],  # Empty items
-    )
-
-    with pytest.raises(ValidationError) as exc_info:
-        await order_service.create_order(order_data)
-
-    assert "at least one item" in exc_info.value.message
+    with pytest.raises(PydanticValidationError):
+        OrderCreateDTO(
+            customer_id=sample_customer.id,
+            items=[],  # Empty items
+        )
 
 
 @pytest.mark.asyncio
@@ -228,6 +221,48 @@ async def test_order_total_calculation(order_service, sample_customer, sample_pr
 
     expected_total = sample_product.price * 5
     assert order.total_amount == expected_total
+
+
+@pytest.mark.asyncio
+async def test_create_order_with_duplicate_product_items(
+    order_service, sample_customer, sample_product
+):
+    """Duplicate product rows are stored as separate order items."""
+    order_data = OrderCreateDTO(
+        customer_id=sample_customer.id,
+        items=[
+            OrderItemCreateDTO(product_id=sample_product.id, quantity=1),
+            OrderItemCreateDTO(product_id=sample_product.id, quantity=3),
+        ],
+    )
+
+    order = await order_service.create_order(order_data)
+
+    assert len(order.items) == 2
+    assert order.items[0].product_id == sample_product.id
+    assert order.items[1].product_id == sample_product.id
+    assert order.total_amount == sample_product.price * 4
+
+
+@pytest.mark.asyncio
+async def test_order_item_uses_product_price_snapshot(
+    order_service, product_service, sample_customer, sample_product
+):
+    """Order item unit_price keeps creation-time product price."""
+    order_data = OrderCreateDTO(
+        customer_id=sample_customer.id,
+        items=[OrderItemCreateDTO(product_id=sample_product.id, quantity=2)],
+    )
+    order = await order_service.create_order(order_data)
+    initial_unit_price = order.items[0].unit_price
+
+    from app.schemas import ProductUpdateDTO
+
+    await product_service.update_product(sample_product.id, ProductUpdateDTO(price=999.0))
+    updated_order = await order_service.get_order(order.id)
+
+    assert updated_order.items[0].unit_price == initial_unit_price
+    assert updated_order.total_amount == initial_unit_price * 2
 
 
 @pytest.mark.asyncio

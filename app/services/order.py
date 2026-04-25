@@ -50,19 +50,11 @@ class OrderService:
         if not customer:
             raise NotFoundError(f"Customer with id {order_data.customer_id} not found")
 
-        # Validate items list is not empty
-        if not order_data.items or len(order_data.items) == 0:
-            raise ValidationError("Order must contain at least one item")
-
         # Validate and collect items
         total_amount = 0.0
         items_to_create = []
 
         for item in order_data.items:
-            # Validate quantity
-            if item.quantity <= 0:
-                raise ValidationError(f"Quantity must be greater than 0, got {item.quantity}")
-
             # Validate product exists and is in stock
             product = await self.product_repo.get_by_id(item.product_id)
             if not product:
@@ -92,4 +84,7 @@ class OrderService:
         )
 
         await self.session.commit()
-        return OrderReadDTO.model_validate(order)
+        # Re-fetch order with eager-loaded items to avoid async lazy-loading
+        # when serializing response DTO in FastAPI.
+        created_order = await self.order_repo.get_by_id(order.id)
+        return OrderReadDTO.model_validate(created_order)

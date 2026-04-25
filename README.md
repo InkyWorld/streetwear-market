@@ -43,6 +43,10 @@ app/
 uv sync
 ```
 
+`uv sync` installs the default `dev` dependency group, so local test tooling
+(`pytest`, `pytest-asyncio`, `pytest-cov`, `aiosqlite`) is available for
+`uv run pytest`.
+
 ### 2. Configure environment
 
 Copy `.env.example` to `.env` and update with your database credentials:
@@ -112,7 +116,7 @@ uv run pytest tests/integration/test_product_crud.py
 ### Run with coverage
 
 ```bash
-uv run pytest --cov=app
+uv run pytest --cov=app --cov-report=term-missing --cov-report=xml
 ```
 
 ## Code Quality
@@ -193,6 +197,18 @@ curl -X POST http://localhost:8000/api/catalog \
   }'
 ```
 
+Response:
+
+```json
+{
+  "id": 1,
+  "name": "Sneakers",
+  "description": "Athletic footwear",
+  "created_at": "2026-04-25T13:00:00",
+  "updated_at": "2026-04-25T13:00:00"
+}
+```
+
 ### Create a Brand
 
 ```bash
@@ -236,6 +252,19 @@ curl -X POST http://localhost:8000/api/customer \
   }'
 ```
 
+Response:
+
+```json
+{
+  "id": 1,
+  "full_name": "John Doe",
+  "email": "john@example.com",
+  "phone": "+1234567890",
+  "created_at": "2026-04-25T13:01:00",
+  "updated_at": "2026-04-25T13:01:00"
+}
+```
+
 ### Create an Order
 
 ```bash
@@ -250,6 +279,29 @@ curl -X POST http://localhost:8000/api/order \
       }
     ]
   }'
+```
+
+Response:
+
+```json
+{
+  "id": 1,
+  "customer_id": 1,
+  "status": "pending",
+  "total_amount": 300.0,
+  "items": [
+    {
+      "id": 1,
+      "order_id": 1,
+      "product_id": 1,
+      "quantity": 2,
+      "unit_price": 150.0,
+      "created_at": "2026-04-25T13:02:00"
+    }
+  ],
+  "created_at": "2026-04-25T13:02:00",
+  "updated_at": "2026-04-25T13:02:00"
+}
 ```
 
 ### Get Order
@@ -373,6 +425,11 @@ Error response format:
   "error_type": "ErrorClassName"
 }
 ```
+
+## Demo and Limitations
+
+- Demo walkthrough: `docs/DEMO_SCENARIO.md`
+- Known limitations: `docs/KNOWN_LIMITATIONS.md`
 
 ## License
 
