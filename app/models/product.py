@@ -21,6 +21,10 @@ class SeasonEnum(str, enum.Enum):
     AUTUMN_WINTER = "AW"
 
 
+def _season_enum_values(enum_cls: type[SeasonEnum]) -> list[str]:
+    return [item.value for item in enum_cls]
+
+
 class Product(Base):
     """Product model."""
 
@@ -37,7 +41,7 @@ class Product(Base):
     season: Mapped[SeasonEnum] = mapped_column(
         Enum(
             SeasonEnum,
-            values_callable=lambda enum_cls: [item.value for item in enum_cls],
+            values_callable=_season_enum_values,
             native_enum=False,
         ),
         default=SeasonEnum.SPRING_SUMMER,

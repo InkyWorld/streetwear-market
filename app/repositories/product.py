@@ -9,7 +9,7 @@ from app.models import Product
 from app.repositories.base import BaseRepository
 
 
-class ProductRepository(BaseRepository):
+class ProductRepository(BaseRepository[Product]):
     """Repository for Product model."""
 
     def __init__(self, session: AsyncSession):

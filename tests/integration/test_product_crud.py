@@ -3,7 +3,7 @@
 import pytest
 
 from app.domain.exceptions import ConflictError, NotFoundError
-from app.schemas import ProductCreateDTO, ProductUpdateDTO
+from app.schemas import ProductCreateDTO, ProductUpdateDTO, SeasonEnum
 
 
 @pytest.mark.asyncio
@@ -17,7 +17,7 @@ async def test_create_product_success(product_service, sample_brand, sample_cata
         currency="USD",
         size="M",
         color="Blue",
-        season="AW",
+        season=SeasonEnum.AUTUMN_WINTER,
         in_stock=True,
         category_id=sample_catalog.id,
         brand_id=sample_brand.id,
@@ -131,7 +131,7 @@ async def test_list_products(product_service, sample_product):
 @pytest.mark.asyncio
 async def test_update_product_success(product_service, sample_product):
     """Test successful product update."""
-    update_data = ProductUpdateDTO(name="Updated Product Name", price=199.99)
+    update_data = ProductUpdateDTO.model_validate({"name": "Updated Product Name", "price": 199.99})
 
     updated_product = await product_service.update_product(sample_product.id, update_data)
 
@@ -143,7 +143,7 @@ async def test_update_product_success(product_service, sample_product):
 @pytest.mark.asyncio
 async def test_update_product_not_found(product_service):
     """Test updating non-existent product."""
-    update_data = ProductUpdateDTO(name="Updated")
+    update_data = ProductUpdateDTO.model_validate({"name": "Updated"})
 
     with pytest.raises(NotFoundError):
         await product_service.update_product(9999, update_data)
@@ -155,13 +155,13 @@ async def test_update_product_invalid_price(product_service, sample_product):
     from pydantic import ValidationError as PydanticValidationError
 
     with pytest.raises(PydanticValidationError):
-        ProductUpdateDTO(price=-50.0)
+        ProductUpdateDTO.model_validate({"price": -50.0})
 
 
 @pytest.mark.asyncio
 async def test_update_product_nonexistent_category(product_service, sample_product):
     """Test updating product with non-existent category."""
-    update_data = ProductUpdateDTO(category_id=9999)
+    update_data = ProductUpdateDTO.model_validate({"category_id": 9999})
 
     with pytest.raises(NotFoundError):
         await product_service.update_product(sample_product.id, update_data)
@@ -206,7 +206,7 @@ async def test_product_fields_partial_update(product_service, sample_product):
     """Test partial product update."""
     original_name = sample_product.name
 
-    update_data = ProductUpdateDTO(color="Black")  # Only update color
+    update_data = ProductUpdateDTO.model_validate({"color": "Black"})  # Only update color
 
     updated_product = await product_service.update_product(sample_product.id, update_data)
 
