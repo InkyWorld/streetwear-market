@@ -56,11 +56,21 @@ class OrderRepository(BaseRepository[Order]):
         return result.scalars().all()
 
     async def create_with_items(
-        self, customer_id: int, status: str, total_amount: float, items_data: List[dict]
+        self,
+        customer_id: int,
+        status: str,
+        total_amount: float,
+        items_data: List[dict],
+        pricing_breakdown: dict | None = None,
     ) -> Order:
         """Create order with items in a single transaction."""
         # Create order
-        order = Order(customer_id=customer_id, status=status, total_amount=total_amount)
+        order = Order(
+            customer_id=customer_id,
+            status=status,
+            total_amount=total_amount,
+            pricing_breakdown=pricing_breakdown,
+        )
         self.session.add(order)
         await self.session.flush()
 

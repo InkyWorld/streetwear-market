@@ -3,13 +3,14 @@
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 
 if TYPE_CHECKING:
     from app.models.customer import Customer
+    from app.models.inventory_reservation import InventoryReservation
     from app.models.product import Product
 
 
@@ -22,6 +23,7 @@ class Order(Base):
     customer_id: Mapped[int] = mapped_column(Integer, ForeignKey("customers.id"), nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False, index=True)
     total_amount: Mapped[float] = mapped_column(Float, nullable=False)
+    pricing_breakdown: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
@@ -38,6 +40,9 @@ class Order(Base):
     customer: Mapped["Customer"] = relationship("Customer", back_populates="orders")
     items: Mapped[list["OrderItem"]] = relationship(
         "OrderItem", back_populates="order", cascade="all, delete-orphan"
+    )
+    inventory_reservations: Mapped[list["InventoryReservation"]] = relationship(
+        "InventoryReservation", back_populates="order"
     )
 
 
