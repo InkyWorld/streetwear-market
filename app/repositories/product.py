@@ -24,10 +24,10 @@ class ProductRepository(BaseRepository):
     async def sku_exists(self, sku: str, exclude_id: Optional[int] = None) -> bool:
         """Check if SKU exists."""
         stmt = select(func.count()).select_from(Product).where(Product.sku == sku.upper())
-        if exclude_id:
+        if exclude_id is not None:
             stmt = stmt.where(Product.id != exclude_id)
         result = await self.session.execute(stmt)
-        return result.scalar() > 0
+        return result.scalar_one() > 0
 
     async def get_by_category(self, category_id: int, skip: int = 0, limit: int = 100):
         """Get products by category."""

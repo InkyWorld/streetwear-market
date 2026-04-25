@@ -1,7 +1,7 @@
 """Base repository with common CRUD operations."""
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class BaseRepository:
