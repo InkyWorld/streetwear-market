@@ -21,6 +21,7 @@ class Customer(Base):
     full_name: Mapped[str] = mapped_column(String(200), nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     phone: Mapped[str] = mapped_column(String(20), nullable=True)
+    loyalty_tier: Mapped[str] = mapped_column(String(20), default="bronze", nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
