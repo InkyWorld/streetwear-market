@@ -219,7 +219,7 @@ async def test_order_total_calculation(order_service, sample_customer, sample_pr
 
     order = await order_service.create_order(order_data)
 
-    expected_total = sample_product.price * 5
+    expected_total = sample_product.price * 5 * 0.95
     assert order.total_amount == expected_total
 
 

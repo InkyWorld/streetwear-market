@@ -278,10 +278,10 @@ async def test_order_status_change_invalid_transition(
 
 
 @pytest.mark.asyncio
-async def test_order_status_change_to_cancelled_is_rejected(
+async def test_order_status_change_to_cancelled_releases_inventory(
     product_service, brand_service, catalog_service, customer_service, order_service
 ):
-    """Test that cancelling is rejected by strict workflow."""
+    """Test that cancelling releases reserved inventory."""
     brand = await brand_service.create_brand(
         BrandCreateDTO(name="Test Brand 7", description="Test")
     )
@@ -311,10 +311,11 @@ async def test_order_status_change_to_cancelled_is_rejected(
     )
     created_order = await order_service.create_order(order_data)
 
-    with pytest.raises(ValidationError) as exc_info:
-        await order_service.change_order_status(created_order.id, "cancelled")
+    updated = await order_service.change_order_status(created_order.id, "cancelled")
+    assert updated.status == "cancelled"
 
-    assert "Invalid new status" in str(exc_info.value)
+    refreshed = await product_service.get_product(product.id)
+    assert refreshed.stock_quantity == 10
 
 
 @pytest.mark.asyncio
