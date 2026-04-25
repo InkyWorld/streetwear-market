@@ -1,3 +1,4 @@
+from app.schemas.inventory import InventoryReleaseOrderDTO, InventoryReleaseResultDTO
 """Pydantic schemas for request/response validation."""
 
 from app.schemas.brand import BrandCreateDTO, BrandReadDTO
@@ -17,6 +18,7 @@ from app.schemas.product import (
     ProductUpdateDTO,
     SeasonEnum,
 )
+from app.schemas.promotion import PromotionCreateDTO, PromotionReadDTO
 
 __all__ = [
     "BrandCreateDTO",
@@ -27,6 +29,8 @@ __all__ = [
     "CustomerCreateDTO",
     "CustomerReadDTO",
     "CustomerListItemDTO",
+    "InventoryReleaseOrderDTO",
+    "InventoryReleaseResultDTO",
     "OrderCreateDTO",
     "OrderReadDTO",
     "OrderListItemDTO",
@@ -36,5 +40,7 @@ __all__ = [
     "ProductUpdateDTO",
     "ProductReadDTO",
     "ProductListItemDTO",
+    "PromotionCreateDTO",
+    "PromotionReadDTO",
     "SeasonEnum",
 ]

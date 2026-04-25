@@ -10,15 +10,17 @@ class OrderStatus(str, Enum):
     CONFIRMED = "confirmed"
     SHIPPED = "shipped"
     DELIVERED = "delivered"
+    CANCELLED = "cancelled"
 
     @classmethod
     def get_valid_transitions(cls, current_status: "OrderStatus") -> list["OrderStatus"]:
         """Get valid next statuses for a given current status."""
         transitions = {
-            cls.PENDING: [cls.CONFIRMED],
-            cls.CONFIRMED: [cls.SHIPPED],
+            cls.PENDING: [cls.CONFIRMED, cls.CANCELLED],
+            cls.CONFIRMED: [cls.SHIPPED, cls.CANCELLED],
             cls.SHIPPED: [cls.DELIVERED],
-            cls.DELIVERED: [],  # Terminal state
+            cls.DELIVERED: [],
+            cls.CANCELLED: [],
         }
         return transitions.get(current_status, [])
 
