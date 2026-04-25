@@ -43,6 +43,10 @@ app/
 uv sync
 ```
 
+`uv sync` installs the default `dev` dependency group, so local test tooling
+(`pytest`, `pytest-asyncio`, `pytest-cov`, `aiosqlite`) is available for
+`uv run pytest`.
+
 ### 2. Configure environment
 
 Copy `.env.example` to `.env` and update with your database credentials:
@@ -112,7 +116,7 @@ uv run pytest tests/integration/test_product_crud.py
 ### Run with coverage
 
 ```bash
-uv run pytest --cov=app
+uv run pytest --cov=app --cov-report=term-missing --cov-report=xml
 ```
 
 ## Code Quality
@@ -163,6 +167,19 @@ uv run black app tests && uv run ruff check app tests && uv run mypy app && uv r
 - `GET /api/brand/{id}` - Get brand by ID
 - `POST /api/brand` - Create new brand
 
+### Customer Endpoints
+
+- `GET /api/customer` - List all customers
+- `GET /api/customer/{id}` - Get customer by ID
+- `POST /api/customer` - Create new customer
+
+### Order Endpoints
+
+- `GET /api/order` - List all orders
+- `GET /api/order/{id}` - Get order by ID
+- `POST /api/order` - Create new order
+- `GET /api/order/customer/{customer_id}` - List orders for a specific customer
+
 ### Health Check
 
 - `GET /health` - Health check endpoint
@@ -178,6 +195,18 @@ curl -X POST http://localhost:8000/api/catalog \
     "name": "Sneakers",
     "description": "Athletic footwear"
   }'
+```
+
+Response:
+
+```json
+{
+  "id": 1,
+  "name": "Sneakers",
+  "description": "Athletic footwear",
+  "created_at": "2026-04-25T13:00:00",
+  "updated_at": "2026-04-25T13:00:00"
+}
 ```
 
 ### Create a Brand
@@ -211,6 +240,84 @@ curl -X POST http://localhost:8000/api/product \
   }'
 ```
 
+### Create a Customer
+
+```bash
+curl -X POST http://localhost:8000/api/customer \
+  -H "Content-Type: application/json" \
+  -d '{
+    "full_name": "John Doe",
+    "email": "john@example.com",
+    "phone": "+1234567890"
+  }'
+```
+
+Response:
+
+```json
+{
+  "id": 1,
+  "full_name": "John Doe",
+  "email": "john@example.com",
+  "phone": "+1234567890",
+  "created_at": "2026-04-25T13:01:00",
+  "updated_at": "2026-04-25T13:01:00"
+}
+```
+
+### Create an Order
+
+```bash
+curl -X POST http://localhost:8000/api/order \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": 1,
+    "items": [
+      {
+        "product_id": 1,
+        "quantity": 2
+      }
+    ]
+  }'
+```
+
+Response:
+
+```json
+{
+  "id": 1,
+  "customer_id": 1,
+  "status": "pending",
+  "total_amount": 300.0,
+  "items": [
+    {
+      "id": 1,
+      "order_id": 1,
+      "product_id": 1,
+      "quantity": 2,
+      "unit_price": 150.0,
+      "created_at": "2026-04-25T13:02:00"
+    }
+  ],
+  "created_at": "2026-04-25T13:02:00",
+  "updated_at": "2026-04-25T13:02:00"
+}
+```
+
+### Get Order
+
+```bash
+curl -X GET http://localhost:8000/api/order/1 \
+  -H "Content-Type: application/json"
+```
+
+### List Customer Orders
+
+```bash
+curl -X GET "http://localhost:8000/api/order/customer/1" \
+  -H "Content-Type: application/json"
+```
+
 ## Project Structure
 
 ```
@@ -218,27 +325,59 @@ streetwear-market/
 ├── app/
 │   ├── api/                    # API routers
 │   │   ├── product_router.py   # Product endpoints
-│   │   └── catalog_router.py   # Catalog endpoints
+│   │   ├── catalog_router.py   # Catalog endpoints
+│   │   ├── brand_router.py     # Brand endpoints
+│   │   ├── customer_router.py  # Customer endpoints
+│   │   └── order_router.py     # Order endpoints
 │   ├── services/               # Business logic
-│   │   └── __init__.py         # Services (Product, Catalog, Brand)
+│   │   ├── product.py          # Product service
+│   │   ├── catalog.py          # Catalog service
+│   │   ├── brand.py            # Brand service
+│   │   ├── customer.py         # Customer service
+│   │   ├── order.py            # Order service
+│   │   └── __init__.py
 │   ├── repositories/           # Data access
-│   │   └── __init__.py         # Repositories
+│   │   ├── product.py          # Product repository
+│   │   ├── catalog.py          # Catalog repository
+│   │   ├── brand.py            # Brand repository
+│   │   ├── customer.py         # Customer repository
+│   │   ├── order.py            # Order repository
+│   │   ├── base.py             # Base repository
+│   │   └── __init__.py
 │   ├── models/                 # Database models
-│   │   └── __init__.py         # Product, Catalog, Brand models
+│   │   ├── product.py          # Product model
+│   │   ├── catalog.py          # Catalog model
+│   │   ├── brand.py            # Brand model
+│   │   ├── customer.py         # Customer model
+│   │   ├── order.py            # Order and OrderItem models
+│   │   ├── base.py             # Base model
+│   │   └── __init__.py
 │   ├── schemas/                # Pydantic schemas
-│   │   └── __init__.py         # DTOs for all models
+│   │   ├── product.py          # Product DTO
+│   │   ├── catalog.py          # Catalog DTO
+│   │   ├── brand.py            # Brand DTO
+│   │   ├── customer.py         # Customer DTO
+│   │   ├── order.py            # Order DTO
+│   │   └── __init__.py
 │   ├── domain/                 # Domain layer
 │   │   └── exceptions.py       # Custom exceptions
 │   └── core/                   # Core configuration
 │       ├── config.py           # Settings
 │       └── database.py         # Database connection
 ├── alembic/                    # Database migrations
-│   ├── versions/               # Migration files
+│   ├── versions/
+│   │   ├── 001_initial_schema.py        # Product, Catalog, Brand
+│   │   └── 002_add_customer_order_schema.py  # Customer, Order, OrderItem
 │   ├── env.py                  # Alembic environment
 │   └── script.py.mako          # Migration template
 ├── tests/
 │   ├── unit/                   # Unit tests
+│   │   ├── test_customer_order_models.py
+│   │   └── test_customer_order_schemas.py
 │   ├── integration/            # Integration tests
+│   │   ├── test_product_crud.py
+│   │   ├── test_customer_crud.py
+│   │   └── test_order_crud.py
 │   └── conftest.py             # Pytest fixtures
 ├── main.py                     # FastAPI application entry point
 ├── pyproject.toml              # Project dependencies
@@ -286,6 +425,11 @@ Error response format:
   "error_type": "ErrorClassName"
 }
 ```
+
+## Demo and Limitations
+
+- Demo walkthrough: `docs/DEMO_SCENARIO.md`
+- Known limitations: `docs/KNOWN_LIMITATIONS.md`
 
 ## License
 

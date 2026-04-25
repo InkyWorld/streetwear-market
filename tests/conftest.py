@@ -6,8 +6,15 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.models import Base
-from app.repositories import BrandRepository, CatalogRepository, ProductRepository
-from app.services import BrandService, CatalogService, ProductService
+from app.repositories import (
+    BrandRepository,
+    CatalogRepository,
+    CustomerRepository,
+    OrderItemRepository,
+    OrderRepository,
+    ProductRepository,
+)
+from app.services import BrandService, CatalogService, CustomerService, OrderService, ProductService
 
 # Use test database URL
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -59,6 +66,18 @@ async def catalog_service(test_db):
 
 
 @pytest.fixture
+async def customer_service(test_db):
+    """Create customer service with test database."""
+    return CustomerService(test_db)
+
+
+@pytest.fixture
+async def order_service(test_db):
+    """Create order service with test database."""
+    return OrderService(test_db)
+
+
+@pytest.fixture
 async def product_repository(test_db):
     """Create product repository with test database."""
     return ProductRepository(test_db)
@@ -74,6 +93,24 @@ async def brand_repository(test_db):
 async def catalog_repository(test_db):
     """Create catalog repository with test database."""
     return CatalogRepository(test_db)
+
+
+@pytest.fixture
+async def customer_repository(test_db):
+    """Create customer repository with test database."""
+    return CustomerRepository(test_db)
+
+
+@pytest.fixture
+async def order_repository(test_db):
+    """Create order repository with test database."""
+    return OrderRepository(test_db)
+
+
+@pytest.fixture
+async def order_item_repository(test_db):
+    """Create order item repository with test database."""
+    return OrderItemRepository(test_db)
 
 
 @pytest.fixture
@@ -112,5 +149,37 @@ async def sample_product(product_service, sample_brand, sample_catalog):
             in_stock=True,
             category_id=sample_catalog.id,
             brand_id=sample_brand.id,
+        )
+    )
+
+
+@pytest.fixture
+async def sample_customer(customer_service):
+    """Create sample customer."""
+    from app.schemas import CustomerCreateDTO
+
+    return await customer_service.create_customer(
+        CustomerCreateDTO(
+            full_name="John Doe",
+            email="john@example.com",
+            phone="+1234567890",
+        )
+    )
+
+
+@pytest.fixture
+async def sample_order(order_service, sample_customer, sample_product):
+    """Create sample order."""
+    from app.schemas import OrderCreateDTO, OrderItemCreateDTO
+
+    return await order_service.create_order(
+        OrderCreateDTO(
+            customer_id=sample_customer.id,
+            items=[
+                OrderItemCreateDTO(
+                    product_id=sample_product.id,
+                    quantity=2,
+                )
+            ],
         )
     )
