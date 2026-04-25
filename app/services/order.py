@@ -4,8 +4,15 @@ from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain.enums import LoyaltyTier
 from app.domain.exceptions import NotFoundError, ValidationError
-from app.repositories import CustomerRepository, OrderItemRepository, OrderRepository, ProductRepository
+from app.domain.workflow import OrderWorkflowValidator
+from app.repositories import (
+    CustomerRepository,
+    OrderItemRepository,
+    OrderRepository,
+    ProductRepository,
+)
 from app.schemas import OrderCreateDTO, OrderListItemDTO, OrderReadDTO
 
 
@@ -43,29 +50,49 @@ class OrderService:
         orders = await self.order_repo.get_by_customer_id(customer_id, skip, limit)
         return [OrderListItemDTO.model_validate(o) for o in orders]
 
+    def _calculate_loyalty_discount(self, loyalty_tier: str) -> float:
+        """Calculate discount percentage based on loyalty tier."""
+        try:
+            tier = LoyaltyTier(loyalty_tier)
+            return tier.get_discount_percentage()
+        except ValueError:
+            return 0.0
+
     async def create_order(self, order_data: OrderCreateDTO) -> OrderReadDTO:
-        """Create a new order with validation."""
+        """Create a new order with validation, inventory check, and loyalty pricing."""
         # Validate customer exists
         customer = await self.customer_repo.get_by_id(order_data.customer_id)
         if not customer:
             raise NotFoundError(f"Customer with id {order_data.customer_id} not found")
 
-        # Validate and collect items
-        total_amount = 0.0
+        # Get loyalty tier and calculate discount
+        loyalty_discount = self._calculate_loyalty_discount(customer.loyalty_tier)
+
+        # Validate and collect items with inventory check
+        subtotal = 0.0
         items_to_create = []
 
         for item in order_data.items:
-            # Validate product exists and is in stock
+            # Validate product exists
             product = await self.product_repo.get_by_id(item.product_id)
             if not product:
                 raise NotFoundError(f"Product with id {item.product_id} not found")
 
+            # Check inventory/stock availability
             if not product.in_stock:
-                raise ValidationError(f"Product with id {item.product_id} is not in stock")
+                raise ValidationError(
+                    f"Product '{product.name}' (ID: {item.product_id}) is not in stock"
+                )
 
-            # Calculate total for this item
+            if product.stock_quantity is not None and product.stock_quantity < item.quantity:
+                raise ValidationError(
+                    f"Insufficient stock for product '{product.name}'. "
+                    f"Requested: {item.quantity}, Available: {product.stock_quantity}"
+                )
+
+            # Calculate item total
             item_total = product.price * item.quantity
-            total_amount += item_total
+            subtotal += item_total
 
             items_to_create.append(
                 {
@@ -75,16 +102,53 @@ class OrderService:
                 }
             )
 
-        # Create order with items in transaction
-        order = await self.order_repo.create_with_items(
-            customer_id=order_data.customer_id,
-            status="pending",
-            total_amount=total_amount,
-            items_data=items_to_create,
-        )
+        # Apply loyalty discount
+        discount_amount = subtotal * loyalty_discount
+        total_amount = subtotal - discount_amount
 
-        await self.session.commit()
+        try:
+            # Create order with items in transaction
+            order = await self.order_repo.create_with_items(
+                customer_id=order_data.customer_id,
+                status="pending",
+                total_amount=total_amount,
+                items_data=items_to_create,
+            )
+
+            # Update inventory (decrease stock) within the same transaction
+            for item in items_to_create:
+                product = await self.product_repo.get_by_id(item["product_id"])
+                if product and product.stock_quantity is not None:
+                    new_stock = product.stock_quantity - item["quantity"]
+                    await self.product_repo.update(
+                        item["product_id"],
+                        stock_quantity=max(0, new_stock),
+                    )
+
+            await self.session.commit()
+        except Exception as e:
+            await self.session.rollback()
+            raise ValidationError(f"Failed to create order: {str(e)}")
+
         # Re-fetch order with eager-loaded items to avoid async lazy-loading
         # when serializing response DTO in FastAPI.
         created_order = await self.order_repo.get_by_id(order.id)
         return OrderReadDTO.model_validate(created_order)
+
+    async def change_order_status(self, order_id: int, new_status: str) -> OrderReadDTO:
+        """Change order status with workflow validation."""
+        # Get existing order
+        order = await self.order_repo.get_by_id(order_id)
+        if not order:
+            raise NotFoundError(f"Order with id {order_id} not found")
+
+        # Validate workflow transition
+        OrderWorkflowValidator.validate_transition(order.status, new_status)
+
+        # Update status
+        await self.order_repo.update(order_id, status=new_status)
+        await self.session.commit()
+
+        # Re-fetch order
+        updated_order = await self.order_repo.get_by_id(order_id)
+        return OrderReadDTO.model_validate(updated_order)

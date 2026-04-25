@@ -43,6 +43,7 @@ class CustomerService:
             full_name=customer_data.full_name,
             email=customer_data.email.lower(),
             phone=customer_data.phone,
+            loyalty_tier=customer_data.loyalty_tier,
         )
 
         await self.session.commit()

@@ -66,6 +66,7 @@ class ProductService:
             color=product_data.color,
             season=product_data.season,
             in_stock=product_data.in_stock,
+            stock_quantity=product_data.stock_quantity,
             category_id=product_data.category_id,
             brand_id=product_data.brand_id,
         )
