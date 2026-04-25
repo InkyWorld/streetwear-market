@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.api import brand_router, catalog_router, product_router
+from app.api import brand_router, catalog_router, customer_router, order_router, product_router
 from app.core.config import settings
 from app.domain.exceptions import AppException
 
@@ -50,6 +50,8 @@ async def health_check():
 app.include_router(product_router.router)
 app.include_router(catalog_router.router)
 app.include_router(brand_router.router)
+app.include_router(customer_router.router)
+app.include_router(order_router.router)
 
 
 if __name__ == "__main__":
