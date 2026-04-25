@@ -38,6 +38,7 @@ class Product(Base):
     currency: Mapped[str] = mapped_column(String(3), default="USD")
     size: Mapped[str] = mapped_column(String(20), nullable=True)
     color: Mapped[str] = mapped_column(String(50), nullable=True)
+    stock_quantity: Mapped[int] = mapped_column(Integer, nullable=True)
     season: Mapped[SeasonEnum] = mapped_column(
         Enum(
             SeasonEnum,

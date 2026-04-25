@@ -12,6 +12,7 @@ class CustomerCreateDTO(BaseModel):
     full_name: str = Field(..., min_length=1, max_length=200)
     email: EmailStr
     phone: Optional[str] = Field(None, max_length=20)
+    loyalty_tier: str = Field(default="bronze", pattern="^(bronze|silver|gold)$")
 
 
 class CustomerReadDTO(BaseModel):
@@ -21,6 +22,7 @@ class CustomerReadDTO(BaseModel):
     full_name: str
     email: str
     phone: Optional[str]
+    loyalty_tier: str
     created_at: datetime
     updated_at: datetime
 
@@ -34,5 +36,6 @@ class CustomerListItemDTO(BaseModel):
     full_name: str
     email: str
     phone: Optional[str]
+    loyalty_tier: str
 
     model_config = ConfigDict(from_attributes=True)

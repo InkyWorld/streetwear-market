@@ -26,6 +26,7 @@ class ProductCreateDTO(BaseModel):
     color: Optional[str] = Field(default=None, max_length=50)
     season: SeasonEnum = Field(default=SeasonEnum.SPRING_SUMMER)
     in_stock: bool = Field(default=True)
+    stock_quantity: Optional[int] = Field(default=None, ge=0)
     category_id: int = Field(...)
     brand_id: int = Field(...)
 
@@ -63,6 +64,7 @@ class ProductReadDTO(BaseModel):
     currency: str
     size: Optional[str]
     color: Optional[str]
+    stock_quantity: Optional[int]
     season: SeasonEnum
     in_stock: bool
     category_id: int
