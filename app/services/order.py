@@ -7,13 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.enums import LoyaltyTier
 from app.domain.exceptions import NotFoundError, ValidationError
 from app.domain.workflow import OrderWorkflowValidator
-from app.repositories import (
-    CustomerRepository,
-    OrderItemRepository,
-    OrderRepository,
-    ProductRepository,
-)
+from app.repositories import CustomerRepository, OrderItemRepository, OrderRepository, ProductRepository
 from app.schemas import OrderCreateDTO, OrderListItemDTO, OrderReadDTO
+from app.services.inventory import InventoryService
+from app.services.pricing import PricingService
+from app.repositories import PromotionRepository
 
 
 class OrderService:
@@ -25,6 +23,9 @@ class OrderService:
         self.order_item_repo = OrderItemRepository(session)
         self.customer_repo = CustomerRepository(session)
         self.product_repo = ProductRepository(session)
+        self.promotion_repo = PromotionRepository(session)
+        self.pricing_service = PricingService(self.promotion_repo)
+        self.inventory_service = InventoryService(session)
 
     async def get_order(self, order_id: int) -> OrderReadDTO:
         """Get order by id."""
@@ -65,11 +66,7 @@ class OrderService:
         if not customer:
             raise NotFoundError(f"Customer with id {order_data.customer_id} not found")
 
-        # Get loyalty tier and calculate discount
-        loyalty_discount = self._calculate_loyalty_discount(customer.loyalty_tier)
-
         # Validate and collect items with inventory check
-        subtotal = 0.0
         items_to_create = []
 
         for item in order_data.items:
@@ -90,40 +87,33 @@ class OrderService:
                     f"Requested: {item.quantity}, Available: {product.stock_quantity}"
                 )
 
-            # Calculate item total
-            item_total = product.price * item.quantity
-            subtotal += item_total
-
             items_to_create.append(
                 {
                     "product_id": item.product_id,
                     "quantity": item.quantity,
                     "unit_price": product.price,
+                    "category_id": product.category_id,
                 }
             )
 
-        # Apply loyalty discount
-        discount_amount = subtotal * loyalty_discount
-        total_amount = subtotal - discount_amount
+        pricing_breakdown = await self.pricing_service.build_breakdown(
+            items=items_to_create,
+            loyalty_tier=customer.loyalty_tier,
+        )
+        total_amount = float(pricing_breakdown["final_total"])
 
         try:
-            # Create order with items in transaction
+            reservation_ids = await self.inventory_service.hold_items(
+                order_id=None, items=items_to_create
+            )
             order = await self.order_repo.create_with_items(
                 customer_id=order_data.customer_id,
                 status="pending",
                 total_amount=total_amount,
                 items_data=items_to_create,
+                pricing_breakdown=pricing_breakdown,
             )
-
-            # Update inventory (decrease stock) within the same transaction
-            for item in items_to_create:
-                product = await self.product_repo.get_by_id(item["product_id"])
-                if product and product.stock_quantity is not None:
-                    new_stock = product.stock_quantity - item["quantity"]
-                    await self.product_repo.update(
-                        item["product_id"],
-                        stock_quantity=max(0, new_stock),
-                    )
+            await self.inventory_service.attach_holds_to_order(order.id, reservation_ids)
 
             await self.session.commit()
         except Exception as e:
@@ -147,6 +137,10 @@ class OrderService:
 
         # Update status
         await self.order_repo.update(order_id, status=new_status)
+        if new_status == "confirmed":
+            await self.inventory_service.commit_holds_for_order(order_id)
+        if new_status == "cancelled":
+            await self.inventory_service.release_holds_for_order(order_id, reason="order_cancelled")
         await self.session.commit()
 
         # Re-fetch order

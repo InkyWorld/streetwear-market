@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/order", tags=["orders"])
 class OrderStatusUpdateDTO(BaseModel):
     """Schema for updating order status."""
 
-    status: str = Field(..., pattern="^(pending|confirmed|shipped|delivered)$")
+    status: str = Field(..., pattern="^(pending|confirmed|shipped|delivered|cancelled)$")
 
 
 @router.get("", response_model=List[OrderListItemDTO], status_code=status.HTTP_200_OK)

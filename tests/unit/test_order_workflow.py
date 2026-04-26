@@ -16,6 +16,7 @@ class TestOrderStatusEnum:
         assert OrderStatus.CONFIRMED.value == "confirmed"
         assert OrderStatus.SHIPPED.value == "shipped"
         assert OrderStatus.DELIVERED.value == "delivered"
+        assert OrderStatus.CANCELLED.value == "cancelled"
 
     def test_pending_can_transition_to_confirmed(self):
         """Test pending can transition to confirmed."""
@@ -36,6 +37,10 @@ class TestOrderStatusEnum:
     def test_confirmed_cannot_transition_to_pending(self):
         """Test confirmed cannot transition back to pending."""
         assert not OrderStatus.CONFIRMED.can_transition_to(OrderStatus.PENDING)
+
+    def test_pending_can_transition_to_cancelled(self):
+        """Test pending can transition to cancelled."""
+        assert OrderStatus.PENDING.can_transition_to(OrderStatus.CANCELLED)
 
     def test_shipped_can_transition_to_delivered(self):
         """Test shipped can transition to delivered."""
@@ -95,13 +100,15 @@ class TestOrderWorkflowValidator:
         """Test getting valid transitions from pending."""
         valid = OrderWorkflowValidator.get_valid_transitions("pending")
         assert "confirmed" in valid
-        assert len(valid) == 1
+        assert "cancelled" in valid
+        assert len(valid) == 2
 
     def test_get_valid_transitions_from_confirmed(self):
         """Test getting valid transitions from confirmed."""
         valid = OrderWorkflowValidator.get_valid_transitions("confirmed")
         assert "shipped" in valid
-        assert len(valid) == 1
+        assert "cancelled" in valid
+        assert len(valid) == 2
 
     def test_get_valid_transitions_from_delivered(self):
         """Test delivered has no valid transitions."""

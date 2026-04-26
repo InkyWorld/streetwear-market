@@ -1,7 +1,7 @@
 """Order and OrderItem DTO schemas."""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -40,6 +40,7 @@ class OrderReadDTO(BaseModel):
     customer_id: int
     status: str
     total_amount: float
+    pricing_breakdown: dict[str, Any] | None = None
     items: List[OrderItemReadDTO]
     created_at: datetime
     updated_at: datetime
