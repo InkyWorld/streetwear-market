@@ -6,7 +6,12 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
-from app.schemas import CustomerCreateDTO, CustomerListItemDTO, CustomerReadDTO
+from app.schemas import (
+    CustomerCreateDTO,
+    CustomerListItemDTO,
+    CustomerReadDTO,
+    CustomerUpdateDTO,
+)
 from app.services import CustomerService
 
 router = APIRouter(prefix="/api/customer", tags=["customers"])
@@ -35,3 +40,19 @@ async def create_customer(
     """Create a new customer."""
     service = CustomerService(session)
     return await service.create_customer(customer_data)
+
+
+@router.put("/{customer_id}", response_model=CustomerReadDTO, status_code=status.HTTP_200_OK)
+async def update_customer(
+    customer_id: int,
+    customer_data: CustomerUpdateDTO,
+    session: AsyncSession = Depends(get_db_session),
+):
+    service = CustomerService(session)
+    return await service.update_customer(customer_id, customer_data)
+
+
+@router.delete("/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_customer(customer_id: int, session: AsyncSession = Depends(get_db_session)):
+    service = CustomerService(session)
+    await service.delete_customer(customer_id)

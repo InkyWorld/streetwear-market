@@ -12,6 +12,13 @@ class CatalogCreateDTO(BaseModel):
     description: str = Field(default="", max_length=500)
 
 
+class CatalogUpdateDTO(BaseModel):
+    """Schema for updating a catalog/category."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    description: str | None = Field(default=None, max_length=500)
+
+
 class CatalogReadDTO(BaseModel):
     """Schema for reading a catalog."""
 

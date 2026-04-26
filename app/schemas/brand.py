@@ -12,6 +12,13 @@ class BrandCreateDTO(BaseModel):
     description: str = Field(default="", max_length=500)
 
 
+class BrandUpdateDTO(BaseModel):
+    """Schema for updating a brand."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    description: str | None = Field(default=None, max_length=500)
+
+
 class BrandReadDTO(BaseModel):
     """Schema for reading a brand."""
 

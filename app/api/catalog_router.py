@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
-from app.schemas import CatalogCreateDTO, CatalogListDTO, CatalogReadDTO
+from app.schemas import CatalogCreateDTO, CatalogListDTO, CatalogReadDTO, CatalogUpdateDTO
 from app.services import CatalogService
 
 router = APIRouter(prefix="/api/catalog", tags=["catalogs"])
@@ -35,3 +35,19 @@ async def create_catalog(
     """Create a new catalog."""
     service = CatalogService(session)
     return await service.create_catalog(catalog_data)
+
+
+@router.put("/{catalog_id}", response_model=CatalogReadDTO, status_code=status.HTTP_200_OK)
+async def update_catalog(
+    catalog_id: int,
+    catalog_data: CatalogUpdateDTO,
+    session: AsyncSession = Depends(get_db_session),
+):
+    service = CatalogService(session)
+    return await service.update_catalog(catalog_id, catalog_data)
+
+
+@router.delete("/{catalog_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_catalog(catalog_id: int, session: AsyncSession = Depends(get_db_session)):
+    service = CatalogService(session)
+    await service.delete_catalog(catalog_id)

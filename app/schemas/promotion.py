@@ -23,6 +23,18 @@ class PromotionCreateDTO(BaseModel):
         return self
 
 
+class PromotionUpdateDTO(BaseModel):
+    """Schema for updating a promotion."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    promotion_type: str | None = Field(default=None, pattern="^(time|category)$")
+    discount_percentage: float | None = Field(default=None, gt=0, le=1)
+    category_id: int | None = None
+    active_from: datetime | None = None
+    active_to: datetime | None = None
+    is_active: bool | None = None
+
+
 class PromotionReadDTO(BaseModel):
     """Promotion read schema."""
 

@@ -15,6 +15,15 @@ class CustomerCreateDTO(BaseModel):
     loyalty_tier: str = Field(default="bronze", pattern="^(bronze|silver|gold)$")
 
 
+class CustomerUpdateDTO(BaseModel):
+    """Schema for updating a customer."""
+
+    full_name: str | None = Field(default=None, min_length=1, max_length=200)
+    email: EmailStr | None = None
+    phone: Optional[str] = Field(None, max_length=20)
+    loyalty_tier: str | None = Field(default=None, pattern="^(bronze|silver|gold)$")
+
+
 class CustomerReadDTO(BaseModel):
     """Schema for reading a customer."""
 
