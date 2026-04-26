@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.exceptions import ConflictError, NotFoundError, ValidationError
 from app.repositories import CustomerRepository
-from app.schemas import CustomerCreateDTO, CustomerListItemDTO, CustomerReadDTO
+from app.schemas import CustomerCreateDTO, CustomerListItemDTO, CustomerReadDTO, CustomerUpdateDTO
 
 
 class CustomerService:
@@ -48,3 +48,29 @@ class CustomerService:
 
         await self.session.commit()
         return CustomerReadDTO.model_validate(customer)
+
+    async def update_customer(self, customer_id: int, customer_data: CustomerUpdateDTO) -> CustomerReadDTO:
+        """Update a customer."""
+        existing = await self.customer_repo.get_by_id(customer_id)
+        if not existing:
+            raise NotFoundError(f"Customer with id {customer_id} not found")
+
+        if customer_data.email and await self.customer_repo.email_exists(customer_data.email, exclude_id=customer_id):
+            raise ConflictError(f"Customer with email '{customer_data.email}' already exists")
+
+        updated = await self.customer_repo.update(
+            customer_id,
+            full_name=customer_data.full_name,
+            email=customer_data.email.lower() if customer_data.email else None,
+            phone=customer_data.phone,
+            loyalty_tier=customer_data.loyalty_tier,
+        )
+        await self.session.commit()
+        return CustomerReadDTO.model_validate(updated)
+
+    async def delete_customer(self, customer_id: int) -> None:
+        """Delete a customer."""
+        deleted = await self.customer_repo.delete(customer_id)
+        if not deleted:
+            raise NotFoundError(f"Customer with id {customer_id} not found")
+        await self.session.commit()

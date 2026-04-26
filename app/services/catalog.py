@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.exceptions import NotFoundError
 from app.repositories import CatalogRepository
-from app.schemas import CatalogCreateDTO, CatalogListDTO, CatalogReadDTO
+from app.schemas import CatalogCreateDTO, CatalogListDTO, CatalogReadDTO, CatalogUpdateDTO
 
 
 class CatalogService:
@@ -35,3 +35,20 @@ class CatalogService:
         )
         await self.session.commit()
         return CatalogReadDTO.model_validate(catalog)
+
+    async def update_catalog(self, catalog_id: int, catalog_data: CatalogUpdateDTO) -> CatalogReadDTO:
+        """Update an existing catalog."""
+        catalog = await self.catalog_repo.update(
+            catalog_id, name=catalog_data.name, description=catalog_data.description
+        )
+        if not catalog:
+            raise NotFoundError(f"Catalog with id {catalog_id} not found")
+        await self.session.commit()
+        return CatalogReadDTO.model_validate(catalog)
+
+    async def delete_catalog(self, catalog_id: int) -> None:
+        """Delete a catalog."""
+        deleted = await self.catalog_repo.delete(catalog_id)
+        if not deleted:
+            raise NotFoundError(f"Catalog with id {catalog_id} not found")
+        await self.session.commit()

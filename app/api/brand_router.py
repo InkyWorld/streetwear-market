@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
-from app.schemas import BrandCreateDTO, BrandReadDTO
+from app.schemas import BrandCreateDTO, BrandReadDTO, BrandUpdateDTO
 from app.services import BrandService
 
 router = APIRouter(prefix="/api/brand", tags=["brands"])
@@ -33,3 +33,17 @@ async def create_brand(brand_data: BrandCreateDTO, session: AsyncSession = Depen
     """Create a new brand."""
     service = BrandService(session)
     return await service.create_brand(brand_data)
+
+
+@router.put("/{brand_id}", response_model=BrandReadDTO, status_code=status.HTTP_200_OK)
+async def update_brand(
+    brand_id: int, brand_data: BrandUpdateDTO, session: AsyncSession = Depends(get_db_session)
+):
+    service = BrandService(session)
+    return await service.update_brand(brand_id, brand_data)
+
+
+@router.delete("/{brand_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_brand(brand_id: int, session: AsyncSession = Depends(get_db_session)):
+    service = BrandService(session)
+    await service.delete_brand(brand_id)

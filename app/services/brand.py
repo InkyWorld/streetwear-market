@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.exceptions import NotFoundError
 from app.repositories import BrandRepository
-from app.schemas import BrandCreateDTO, BrandReadDTO
+from app.schemas import BrandCreateDTO, BrandReadDTO, BrandUpdateDTO
 
 
 class BrandService:
@@ -35,3 +35,20 @@ class BrandService:
         )
         await self.session.commit()
         return BrandReadDTO.model_validate(brand)
+
+    async def update_brand(self, brand_id: int, brand_data: BrandUpdateDTO) -> BrandReadDTO:
+        """Update an existing brand."""
+        brand = await self.brand_repo.update(
+            brand_id, name=brand_data.name, description=brand_data.description
+        )
+        if not brand:
+            raise NotFoundError(f"Brand with id {brand_id} not found")
+        await self.session.commit()
+        return BrandReadDTO.model_validate(brand)
+
+    async def delete_brand(self, brand_id: int) -> None:
+        """Delete a brand."""
+        deleted = await self.brand_repo.delete(brand_id)
+        if not deleted:
+            raise NotFoundError(f"Brand with id {brand_id} not found")
+        await self.session.commit()
