@@ -6,7 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models import Order, OrderItem, Product
+from app.domain.ordering import Order as DomainOrder
+from app.models import Order, OrderItem
 from app.repositories.base import BaseRepository
 
 
@@ -83,6 +84,32 @@ class OrderRepository(BaseRepository[Order]):
                 unit_price=item_data["unit_price"],
             )
             self.session.add(order_item)
+
+        await self.session.flush()
+        return order
+
+    async def create_from_aggregate(self, aggregate: DomainOrder) -> Order:
+        """Persist a domain aggregate using existing ORM tables."""
+        order = Order(
+            customer_id=aggregate.customer_id,
+            status=aggregate.status,
+            total_amount=aggregate.total_price.amount,
+            pricing_breakdown=aggregate.pricing_breakdown,
+        )
+        self.session.add(order)
+        await self.session.flush()
+
+        aggregate.assign_persistence_id(order.id)
+
+        for line in aggregate.lines:
+            self.session.add(
+                OrderItem(
+                    order_id=order.id,
+                    product_id=line.product_id,
+                    quantity=line.quantity.value,
+                    unit_price=line.unit_price.amount,
+                )
+            )
 
         await self.session.flush()
         return order
