@@ -4,6 +4,9 @@ from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain.ordering import Order as DomainOrder
+from app.domain.ordering import OrderLine
+from app.domain.value_objects import Money
 from app.domain.enums import LoyaltyTier
 from app.domain.exceptions import NotFoundError, ValidationError
 from app.domain.workflow import OrderWorkflowValidator
@@ -52,7 +55,7 @@ class OrderService:
         return [OrderListItemDTO.model_validate(o) for o in orders]
 
     def _calculate_loyalty_discount(self, loyalty_tier: str) -> float:
-        """Calculate discount percentage based on loyalty tier."""
+        """Backward-compatible helper used by existing unit tests."""
         try:
             tier = LoyaltyTier(loyalty_tier)
             return tier.get_discount_percentage()
@@ -60,7 +63,7 @@ class OrderService:
             return 0.0
 
     async def create_order(self, order_data: OrderCreateDTO) -> OrderReadDTO:
-        """Create a new order with validation, inventory check, and loyalty pricing."""
+        """Create a new order using the Order aggregate."""
         # Validate customer exists
         customer = await self.customer_repo.get_by_id(order_data.customer_id)
         if not customer:
@@ -68,6 +71,7 @@ class OrderService:
 
         # Validate and collect items with inventory check
         items_to_create = []
+        domain_lines: list[OrderLine] = []
 
         for item in order_data.items:
             # Validate product exists
@@ -95,24 +99,36 @@ class OrderService:
                     "category_id": product.category_id,
                 }
             )
+            domain_lines.append(
+                OrderLine.create(
+                    product_id=product.id,
+                    sku=product.sku,
+                    quantity=item.quantity,
+                    unit_price=product.price,
+                    currency=product.currency,
+                )
+            )
 
         pricing_breakdown = await self.pricing_service.build_breakdown(
             items=items_to_create,
             loyalty_tier=customer.loyalty_tier,
         )
-        total_amount = float(pricing_breakdown["final_total"])
+        order_total = Money.create(
+            amount=float(pricing_breakdown["final_total"]),
+            currency=domain_lines[0].unit_price.currency,
+        )
+        aggregate = DomainOrder.create(
+            customer_id=order_data.customer_id,
+            lines=domain_lines,
+            total_price=order_total,
+            pricing_breakdown=pricing_breakdown,
+        )
 
         try:
             reservation_ids = await self.inventory_service.hold_items(
                 order_id=None, items=items_to_create
             )
-            order = await self.order_repo.create_with_items(
-                customer_id=order_data.customer_id,
-                status="pending",
-                total_amount=total_amount,
-                items_data=items_to_create,
-                pricing_breakdown=pricing_breakdown,
-            )
+            order = await self.order_repo.create_from_aggregate(aggregate)
             await self.inventory_service.attach_holds_to_order(order.id, reservation_ids)
 
             await self.session.commit()
