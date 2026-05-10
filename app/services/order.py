@@ -4,17 +4,13 @@ from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.ordering import Order as DomainOrder
-from app.domain.ordering import OrderLine
-from app.domain.value_objects import Money
+from app.application.orders import CreateOrderCommand, CreateOrderItemCommand, build_create_order_handler
 from app.domain.enums import LoyaltyTier
-from app.domain.exceptions import NotFoundError, ValidationError
+from app.domain.exceptions import NotFoundError
 from app.domain.workflow import OrderWorkflowValidator
 from app.repositories import CustomerRepository, OrderItemRepository, OrderRepository, ProductRepository
 from app.schemas import OrderCreateDTO, OrderListItemDTO, OrderReadDTO
 from app.services.inventory import InventoryService
-from app.services.pricing import PricingService
-from app.repositories import PromotionRepository
 
 
 class OrderService:
@@ -26,8 +22,6 @@ class OrderService:
         self.order_item_repo = OrderItemRepository(session)
         self.customer_repo = CustomerRepository(session)
         self.product_repo = ProductRepository(session)
-        self.promotion_repo = PromotionRepository(session)
-        self.pricing_service = PricingService(self.promotion_repo)
         self.inventory_service = InventoryService(session)
 
     async def get_order(self, order_id: int) -> OrderReadDTO:
@@ -63,83 +57,16 @@ class OrderService:
             return 0.0
 
     async def create_order(self, order_data: OrderCreateDTO) -> OrderReadDTO:
-        """Create a new order using the Order aggregate."""
-        # Validate customer exists
-        customer = await self.customer_repo.get_by_id(order_data.customer_id)
-        if not customer:
-            raise NotFoundError(f"Customer with id {order_data.customer_id} not found")
-
-        # Validate and collect items with inventory check
-        items_to_create = []
-        domain_lines: list[OrderLine] = []
-
-        for item in order_data.items:
-            # Validate product exists
-            product = await self.product_repo.get_by_id(item.product_id)
-            if not product:
-                raise NotFoundError(f"Product with id {item.product_id} not found")
-
-            # Check inventory/stock availability
-            if not product.in_stock:
-                raise ValidationError(
-                    f"Product '{product.name}' (ID: {item.product_id}) is not in stock"
-                )
-
-            if product.stock_quantity is not None and product.stock_quantity < item.quantity:
-                raise ValidationError(
-                    f"Insufficient stock for product '{product.name}'. "
-                    f"Requested: {item.quantity}, Available: {product.stock_quantity}"
-                )
-
-            items_to_create.append(
-                {
-                    "product_id": item.product_id,
-                    "quantity": item.quantity,
-                    "unit_price": product.price,
-                    "category_id": product.category_id,
-                }
-            )
-            domain_lines.append(
-                OrderLine.create(
-                    product_id=product.id,
-                    sku=product.sku,
-                    quantity=item.quantity,
-                    unit_price=product.price,
-                    currency=product.currency,
-                )
-            )
-
-        pricing_breakdown = await self.pricing_service.build_breakdown(
-            items=items_to_create,
-            loyalty_tier=customer.loyalty_tier,
-        )
-        order_total = Money.create(
-            amount=float(pricing_breakdown["final_total"]),
-            currency=domain_lines[0].unit_price.currency,
-        )
-        aggregate = DomainOrder.create(
+        """Create a new order via application command handler."""
+        command = CreateOrderCommand(
             customer_id=order_data.customer_id,
-            lines=domain_lines,
-            total_price=order_total,
-            pricing_breakdown=pricing_breakdown,
+            items=tuple(
+                CreateOrderItemCommand(product_id=item.product_id, quantity=item.quantity)
+                for item in order_data.items
+            ),
         )
-
-        try:
-            reservation_ids = await self.inventory_service.hold_items(
-                order_id=None, items=items_to_create
-            )
-            order = await self.order_repo.create_from_aggregate(aggregate)
-            await self.inventory_service.attach_holds_to_order(order.id, reservation_ids)
-
-            await self.session.commit()
-        except Exception as e:
-            await self.session.rollback()
-            raise ValidationError(f"Failed to create order: {str(e)}")
-
-        # Re-fetch order with eager-loaded items to avoid async lazy-loading
-        # when serializing response DTO in FastAPI.
-        created_order = await self.order_repo.get_by_id(order.id)
-        return OrderReadDTO.model_validate(created_order)
+        handler = build_create_order_handler(self.session)
+        return await handler.handle(command)
 
     async def change_order_status(self, order_id: int, new_status: str) -> OrderReadDTO:
         """Change order status with workflow validation."""
