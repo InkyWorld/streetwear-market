@@ -5,8 +5,8 @@ from datetime import datetime
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Promotion
-from app.repositories.base import BaseRepository
+from app.infrastructure.persistence.models import Promotion
+from app.infrastructure.persistence.repositories.base import BaseRepository
 
 
 class PromotionRepository(BaseRepository[Promotion]):
@@ -16,7 +16,6 @@ class PromotionRepository(BaseRepository[Promotion]):
         super().__init__(session, Promotion)
 
     async def get_active(self, now: datetime) -> list[Promotion]:
-        """Return active promotions for a point in time."""
         stmt = (
             select(Promotion)
             .where(Promotion.is_active.is_(True))

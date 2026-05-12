@@ -7,16 +7,14 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base
+from app.infrastructure.persistence.models.base import Base
 
 if TYPE_CHECKING:
-    from app.models.brand import Brand
-    from app.models.catalog import Catalog
+    from app.infrastructure.persistence.models.brand import Brand
+    from app.infrastructure.persistence.models.catalog import Catalog
 
 
 class SeasonEnum(str, enum.Enum):
-    """Season enumeration."""
-
     SPRING_SUMMER = "SS"
     AUTUMN_WINTER = "AW"
 
@@ -40,11 +38,7 @@ class Product(Base):
     color: Mapped[str] = mapped_column(String(50), nullable=True)
     stock_quantity: Mapped[int] = mapped_column(Integer, nullable=True)
     season: Mapped[SeasonEnum] = mapped_column(
-        Enum(
-            SeasonEnum,
-            values_callable=_season_enum_values,
-            native_enum=False,
-        ),
+        Enum(SeasonEnum, values_callable=_season_enum_values, native_enum=False),
         default=SeasonEnum.SPRING_SUMMER,
     )
     in_stock: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -62,6 +56,5 @@ class Product(Base):
         nullable=False,
     )
 
-    # Relationships
     catalog: Mapped["Catalog"] = relationship("Catalog", back_populates="products")
     brand: Mapped["Brand"] = relationship("Brand", back_populates="products")

@@ -6,12 +6,12 @@ from typing import TYPE_CHECKING
 from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base
+from app.infrastructure.persistence.models.base import Base
 
 if TYPE_CHECKING:
-    from app.models.customer import Customer
-    from app.models.inventory_reservation import InventoryReservation
-    from app.models.product import Product
+    from app.infrastructure.persistence.models.customer import Customer
+    from app.infrastructure.persistence.models.inventory_reservation import InventoryReservation
+    from app.infrastructure.persistence.models.product import Product
 
 
 class Order(Base):
@@ -36,7 +36,6 @@ class Order(Base):
         nullable=False,
     )
 
-    # Relationships
     customer: Mapped["Customer"] = relationship("Customer", back_populates="orders")
     items: Mapped[list["OrderItem"]] = relationship(
         "OrderItem", back_populates="order", cascade="all, delete-orphan"
@@ -62,6 +61,5 @@ class OrderItem(Base):
         nullable=False,
     )
 
-    # Relationships
     order: Mapped["Order"] = relationship("Order", back_populates="items")
     product: Mapped["Product"] = relationship("Product")

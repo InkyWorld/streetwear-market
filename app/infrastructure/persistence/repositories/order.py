@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.domain.ordering import Order as DomainOrder
-from app.models import Order, OrderItem
-from app.repositories.base import BaseRepository
+from app.infrastructure.persistence.models import Order, OrderItem
+from app.infrastructure.persistence.repositories.base import BaseRepository
 
 
 class OrderItemRepository(BaseRepository[OrderItem]):
@@ -18,7 +18,6 @@ class OrderItemRepository(BaseRepository[OrderItem]):
         super().__init__(session, OrderItem)
 
     async def get_by_order_id(self, order_id: int) -> List[OrderItem]:
-        """Get all items for a specific order."""
         stmt = select(OrderItem).where(OrderItem.order_id == order_id)
         result = await self.session.execute(stmt)
         return result.scalars().all()
@@ -31,13 +30,11 @@ class OrderRepository(BaseRepository[Order]):
         super().__init__(session, Order)
 
     async def get_by_id(self, id: int) -> Optional[Order]:
-        """Get order by id with items."""
         stmt = select(Order).where(Order.id == id).options(selectinload(Order.items))
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def get_all(self, skip: int = 0, limit: int = 100) -> List[Order]:
-        """Get all orders with items."""
         stmt = select(Order).offset(skip).limit(limit).options(selectinload(Order.items))
         result = await self.session.execute(stmt)
         return result.scalars().all()
@@ -45,7 +42,6 @@ class OrderRepository(BaseRepository[Order]):
     async def get_by_customer_id(
         self, customer_id: int, skip: int = 0, limit: int = 100
     ) -> List[Order]:
-        """Get orders for a specific customer."""
         stmt = (
             select(Order)
             .where(Order.customer_id == customer_id)
@@ -64,8 +60,6 @@ class OrderRepository(BaseRepository[Order]):
         items_data: List[dict],
         pricing_breakdown: dict | None = None,
     ) -> Order:
-        """Create order with items in a single transaction."""
-        # Create order
         order = Order(
             customer_id=customer_id,
             status=status,
@@ -75,7 +69,6 @@ class OrderRepository(BaseRepository[Order]):
         self.session.add(order)
         await self.session.flush()
 
-        # Create order items
         for item_data in items_data:
             order_item = OrderItem(
                 order_id=order.id,
@@ -89,7 +82,6 @@ class OrderRepository(BaseRepository[Order]):
         return order
 
     async def create_from_aggregate(self, aggregate: DomainOrder) -> Order:
-        """Persist a domain aggregate using existing ORM tables."""
         order = Order(
             customer_id=aggregate.customer_id,
             status=aggregate.status,

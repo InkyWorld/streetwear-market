@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import InventoryReservation
-from app.repositories.base import BaseRepository
+from app.infrastructure.persistence.models import InventoryReservation
+from app.infrastructure.persistence.repositories.base import BaseRepository
 
 
 class InventoryReservationRepository(BaseRepository[InventoryReservation]):

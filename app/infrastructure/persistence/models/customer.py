@@ -1,4 +1,4 @@
-"""Catalog/Category model."""
+"""Customer model."""
 
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
@@ -6,20 +6,22 @@ from typing import TYPE_CHECKING
 from sqlalchemy import DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base
+from app.infrastructure.persistence.models.base import Base
 
 if TYPE_CHECKING:
-    from app.models.product import Product
+    from app.infrastructure.persistence.models.order import Order
 
 
-class Catalog(Base):
-    """Catalog/Category model."""
+class Customer(Base):
+    """Customer model."""
 
-    __tablename__ = "catalogs"
+    __tablename__ = "customers"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
-    description: Mapped[str] = mapped_column(String(500), default="")
+    full_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    phone: Mapped[str] = mapped_column(String(20), nullable=True)
+    loyalty_tier: Mapped[str] = mapped_column(String(20), default="bronze", nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
@@ -32,7 +34,6 @@ class Catalog(Base):
         nullable=False,
     )
 
-    # Relationships
-    products: Mapped[list["Product"]] = relationship(
-        "Product", back_populates="catalog", cascade="all, delete-orphan"
+    orders: Mapped[list["Order"]] = relationship(
+        "Order", back_populates="customer", cascade="all, delete-orphan"
     )
