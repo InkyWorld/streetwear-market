@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.api import (
+from app.presentation.api import (
     brand_router,
     catalog_router,
     customer_router,

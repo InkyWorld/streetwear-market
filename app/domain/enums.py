@@ -15,7 +15,7 @@ class OrderStatus(str, Enum):
     @classmethod
     def get_valid_transitions(cls, current_status: "OrderStatus") -> list["OrderStatus"]:
         """Get valid next statuses for a given current status."""
-        transitions = {
+        transitions: dict[OrderStatus, list[OrderStatus]] = {
             cls.PENDING: [cls.CONFIRMED, cls.CANCELLED],
             cls.CONFIRMED: [cls.SHIPPED, cls.CANCELLED],
             cls.SHIPPED: [cls.DELIVERED],
@@ -36,11 +36,12 @@ class LoyaltyTier(str, Enum):
     SILVER = "silver"
     GOLD = "gold"
 
+
     def get_discount_percentage(self) -> float:
         """Get discount percentage for this tier."""
-        discounts = {
-            self.BRONZE: 0.0,
-            self.SILVER: 0.05,  # 5% discount
-            self.GOLD: 0.10,  # 10% discount
+        discounts: dict["LoyaltyTier", float] = {
+            LoyaltyTier.BRONZE: 0.0,
+            LoyaltyTier.SILVER: 0.05,  # 5% discount
+            LoyaltyTier.GOLD: 0.10,  # 10% discount
         }
         return discounts.get(self, 0.0)

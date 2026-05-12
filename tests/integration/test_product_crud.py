@@ -3,7 +3,7 @@
 import pytest
 
 from app.domain.exceptions import ConflictError, NotFoundError
-from app.schemas import ProductCreateDTO, ProductUpdateDTO, SeasonEnum
+from app.application.dto import ProductCreateDTO, ProductUpdateDTO, SeasonEnum
 
 
 @pytest.mark.asyncio

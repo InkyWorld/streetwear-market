@@ -148,7 +148,7 @@ class TestLoyaltyPricingCalculation:
 
     def test_bronze_tier_no_discount(self):
         """Test bronze tier calculates no discount."""
-        from app.services.order import OrderService
+        from app.application.services.order import OrderService
 
         service = OrderService.__new__(OrderService)
         discount = service._calculate_loyalty_discount("bronze")
@@ -156,7 +156,7 @@ class TestLoyaltyPricingCalculation:
 
     def test_silver_tier_five_percent_discount(self):
         """Test silver tier calculates 5% discount."""
-        from app.services.order import OrderService
+        from app.application.services.order import OrderService
 
         service = OrderService.__new__(OrderService)
         discount = service._calculate_loyalty_discount("silver")
@@ -164,7 +164,7 @@ class TestLoyaltyPricingCalculation:
 
     def test_gold_tier_ten_percent_discount(self):
         """Test gold tier calculates 10% discount."""
-        from app.services.order import OrderService
+        from app.application.services.order import OrderService
 
         service = OrderService.__new__(OrderService)
         discount = service._calculate_loyalty_discount("gold")
@@ -172,7 +172,7 @@ class TestLoyaltyPricingCalculation:
 
     def test_unknown_tier_defaults_to_no_discount(self):
         """Test unknown tier defaults to no discount."""
-        from app.services.order import OrderService
+        from app.application.services.order import OrderService
 
         service = OrderService.__new__(OrderService)
         discount = service._calculate_loyalty_discount("unknown")
@@ -180,7 +180,7 @@ class TestLoyaltyPricingCalculation:
 
     def test_price_calculation_with_bronze_tier(self):
         """Test price calculation with bronze tier (no discount)."""
-        from app.services.order import OrderService
+        from app.application.services.order import OrderService
 
         service = OrderService.__new__(OrderService)
         subtotal = 100.0
@@ -190,7 +190,7 @@ class TestLoyaltyPricingCalculation:
 
     def test_price_calculation_with_silver_tier(self):
         """Test price calculation with silver tier (5% discount)."""
-        from app.services.order import OrderService
+        from app.application.services.order import OrderService
 
         service = OrderService.__new__(OrderService)
         subtotal = 100.0
@@ -200,7 +200,7 @@ class TestLoyaltyPricingCalculation:
 
     def test_price_calculation_with_gold_tier(self):
         """Test price calculation with gold tier (10% discount)."""
-        from app.services.order import OrderService
+        from app.application.services.order import OrderService
 
         service = OrderService.__new__(OrderService)
         subtotal = 100.0

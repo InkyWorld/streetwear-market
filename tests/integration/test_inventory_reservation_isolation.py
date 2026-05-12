@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.schemas import (
+from app.application.dto import (
     BrandCreateDTO,
     CatalogCreateDTO,
     CustomerCreateDTO,
@@ -10,16 +10,16 @@ from app.schemas import (
     OrderItemCreateDTO,
     ProductCreateDTO,
 )
-from app.services import BrandService, CatalogService, CustomerService, OrderService, ProductService
+from app.presentation.composition_root import CompositionRoot
 
 
 @pytest.mark.asyncio
 async def test_cancelling_one_order_does_not_release_other_order_hold(test_db):
-    brand_service = BrandService(test_db)
-    catalog_service = CatalogService(test_db)
-    product_service = ProductService(test_db)
-    customer_service = CustomerService(test_db)
-    order_service = OrderService(test_db)
+    brand_service = CompositionRoot.brand_service(test_db)
+    catalog_service = CompositionRoot.catalog_service(test_db)
+    product_service = CompositionRoot.product_service(test_db)
+    customer_service = CompositionRoot.customer_service(test_db)
+    order_service = CompositionRoot.order_service(test_db)
 
     brand = await brand_service.create_brand(BrandCreateDTO(name="Iso Brand", description="Isolation"))
     catalog = await catalog_service.create_catalog(
@@ -36,10 +36,18 @@ async def test_cancelling_one_order_does_not_release_other_order_hold(test_db):
         )
     )
     customer_a = await customer_service.create_customer(
-        CustomerCreateDTO(full_name="Customer A", email="customer-a@example.com")
+        CustomerCreateDTO(
+            full_name="Customer A",
+            email="customer-a@example.com",
+            phone="+10000000011",
+        )
     )
     customer_b = await customer_service.create_customer(
-        CustomerCreateDTO(full_name="Customer B", email="customer-b@example.com")
+        CustomerCreateDTO(
+            full_name="Customer B",
+            email="customer-b@example.com",
+            phone="+10000000012",
+        )
     )
 
     order_a = await order_service.create_order(

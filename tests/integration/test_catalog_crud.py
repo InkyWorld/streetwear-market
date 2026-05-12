@@ -3,7 +3,7 @@
 import pytest
 
 from app.domain.exceptions import NotFoundError
-from app.schemas import CatalogCreateDTO
+from app.application.dto import CatalogCreateDTO
 
 
 @pytest.mark.asyncio
