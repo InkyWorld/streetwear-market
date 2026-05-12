@@ -1,56 +1,57 @@
-"""Create order use case command and handler."""
+"""Create-order command handler."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.dto import OrderReadDTO
 from app.application.events import IDomainEventDispatcher
+from app.application.orders.commands import CreateOrderCommand
+from app.application.ports.persistence import (
+    CustomerRepositoryPort,
+    OrderRepositoryPort,
+    ProductRepositoryPort,
+    PromotionRepositoryPort,
+)
+from app.application.services.pricing import PricingService
 from app.domain.exceptions import NotFoundError, ValidationError
 from app.domain.ordering import Order as DomainOrder
 from app.domain.ordering import OrderLine
 from app.domain.value_objects import Money
-from app.repositories import CustomerRepository, OrderRepository, ProductRepository, PromotionRepository
-from app.schemas import OrderReadDTO
-from app.services.pricing import PricingService
-
-
-@dataclass(frozen=True, slots=True)
-class CreateOrderItemCommand:
-    """Single order line command model."""
-
-    product_id: int
-    quantity: int
-
-
-@dataclass(frozen=True, slots=True)
-class CreateOrderCommand:
-    """Command object for create-order use case."""
-
-    customer_id: int
-    items: tuple[CreateOrderItemCommand, ...]
 
 
 class CreateOrderCommandHandler:
     """Application use case for creating orders."""
 
-    def __init__(self, session: AsyncSession, dispatcher: IDomainEventDispatcher):
+    def __init__(
+        self,
+        session: AsyncSession,
+        dispatcher: IDomainEventDispatcher,
+        order_repo: OrderRepositoryPort,
+        customer_repo: CustomerRepositoryPort,
+        product_repo: ProductRepositoryPort,
+        promotion_repo: PromotionRepositoryPort,
+    ):
         self.session = session
         self.dispatcher = dispatcher
-        self.order_repo = OrderRepository(session)
-        self.customer_repo = CustomerRepository(session)
-        self.product_repo = ProductRepository(session)
-        self.promotion_repo = PromotionRepository(session)
+        self.order_repo = order_repo
+        self.customer_repo = customer_repo
+        self.product_repo = product_repo
+        self.promotion_repo = promotion_repo
         self.pricing_service = PricingService(self.promotion_repo)
 
-    async def handle(self, command: CreateOrderCommand) -> OrderReadDTO:
-        """Execute create-order use case and dispatch domain events."""
-        customer = await self.customer_repo.get_by_id(command.customer_id)
+    async def _get_customer_or_raise(self, customer_id: int):
+        customer = await self.customer_repo.get_by_id(customer_id)
         if not customer:
-            raise NotFoundError(f"Customer with id {command.customer_id} not found")
+            raise NotFoundError(f"Customer with id {customer_id} not found")
+        return customer
 
-        items_to_create: list[dict] = []
+    async def _build_order_items(
+        self, command: CreateOrderCommand
+    ) -> tuple[list[dict[str, Any]], list[OrderLine]]:
+        items_to_create: list[dict[str, Any]] = []
         domain_lines: list[OrderLine] = []
 
         for item in command.items:
@@ -84,20 +85,39 @@ class CreateOrderCommandHandler:
                     currency=product.currency,
                 )
             )
+        return items_to_create, domain_lines
 
+    async def _build_aggregate(
+        self,
+        command: CreateOrderCommand,
+        customer_loyalty_tier: str,
+        items_to_create: list[dict[str, Any]],
+        domain_lines: list[OrderLine],
+    ) -> DomainOrder:
         pricing_breakdown = await self.pricing_service.build_breakdown(
             items=items_to_create,
-            loyalty_tier=customer.loyalty_tier,
+            loyalty_tier=customer_loyalty_tier,
         )
         order_total = Money.create(
             amount=float(pricing_breakdown["final_total"]),
             currency=domain_lines[0].unit_price.currency,
         )
-        aggregate = DomainOrder.create(
+        return DomainOrder.create(
             customer_id=command.customer_id,
             lines=domain_lines,
             total_price=order_total,
             pricing_breakdown=pricing_breakdown,
+        )
+
+    async def handle(self, command: CreateOrderCommand) -> OrderReadDTO:
+        """Execute create-order use case and dispatch domain events."""
+        customer = await self._get_customer_or_raise(command.customer_id)
+        items_to_create, domain_lines = await self._build_order_items(command)
+        aggregate = await self._build_aggregate(
+            command=command,
+            customer_loyalty_tier=customer.loyalty_tier,
+            items_to_create=items_to_create,
+            domain_lines=domain_lines,
         )
 
         try:
