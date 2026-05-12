@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.orders import CreateOrderCommand, CreateOrderItemCommand, build_create_order_handler
 from app.core.database import get_db_session
 from app.schemas import OrderCreateDTO, OrderListItemDTO, OrderReadDTO
 from app.services import OrderService
@@ -38,8 +39,15 @@ async def get_order(order_id: int, session: AsyncSession = Depends(get_db_sessio
 @router.post("", response_model=OrderReadDTO, status_code=status.HTTP_201_CREATED)
 async def create_order(order_data: OrderCreateDTO, session: AsyncSession = Depends(get_db_session)):
     """Create a new order."""
-    service = OrderService(session)
-    return await service.create_order(order_data)
+    command = CreateOrderCommand(
+        customer_id=order_data.customer_id,
+        items=tuple(
+            CreateOrderItemCommand(product_id=item.product_id, quantity=item.quantity)
+            for item in order_data.items
+        ),
+    )
+    handler = build_create_order_handler(session)
+    return await handler.handle(command)
 
 
 @router.patch("/{order_id}/status", response_model=OrderReadDTO, status_code=status.HTTP_200_OK)

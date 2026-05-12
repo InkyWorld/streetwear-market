@@ -29,6 +29,18 @@ app/
 └── core/            # Configuration and database setup
 ```
 
+### Tactical DDD flow for order creation
+
+Order creation uses an explicit application use case:
+
+1. API endpoint `POST /api/order` maps request data to `CreateOrderCommand`.
+2. `CreateOrderCommandHandler` loads customer/products, builds the `Order` aggregate, and persists it.
+3. The aggregate raises `OrderCreatedEvent` in the domain layer.
+4. `InMemoryDomainEventDispatcher` dispatches raised events inside the same transactional flow.
+5. `OrderCreatedEventHandler` performs side effects (logging and inventory hold reservation).
+
+This keeps business invariants in the aggregate, orchestration in the application layer, and side effects in event handlers.
+
 ## Prerequisites
 
 - Python 3.12 or higher
