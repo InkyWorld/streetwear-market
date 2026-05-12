@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError as PydanticValidationError
 
 from app.domain.exceptions import NotFoundError, ValidationError
-from app.schemas import CustomerCreateDTO, OrderCreateDTO, OrderItemCreateDTO
+from app.application.dto import CustomerCreateDTO, OrderCreateDTO, OrderItemCreateDTO
 
 
 @pytest.mark.asyncio
@@ -35,7 +35,7 @@ async def test_create_order_success(order_service, sample_customer, sample_produ
 async def test_create_order_multiple_items(order_service, sample_customer, product_service, sample_brand, sample_catalog):
     """Test creating order with multiple items."""
     # Create another product
-    from app.schemas import ProductCreateDTO
+    from app.application.dto import ProductCreateDTO
 
     product2_data = ProductCreateDTO(
         sku="ADIDAS-BOOST-001",
@@ -103,7 +103,7 @@ async def test_create_order_invalid_product(order_service, sample_customer):
 @pytest.mark.asyncio
 async def test_create_order_product_out_of_stock(order_service, sample_customer, product_service, sample_brand, sample_catalog):
     """Test creating order with out-of-stock product."""
-    from app.schemas import ProductCreateDTO, ProductUpdateDTO
+    from app.application.dto import ProductCreateDTO, ProductUpdateDTO
 
     # Create out-of-stock product
     product_data = ProductCreateDTO(
@@ -256,7 +256,7 @@ async def test_order_item_uses_product_price_snapshot(
     order = await order_service.create_order(order_data)
     initial_unit_price = order.items[0].unit_price
 
-    from app.schemas import ProductUpdateDTO
+    from app.application.dto import ProductUpdateDTO
 
     await product_service.update_product(sample_product.id, ProductUpdateDTO(price=999.0))
     updated_order = await order_service.get_order(order.id)
@@ -277,7 +277,7 @@ async def test_business_flow_customer_order(customer_service, order_service, pro
     customer = await customer_service.create_customer(customer_data)
 
     # Create product
-    from app.schemas import ProductCreateDTO
+    from app.application.dto import ProductCreateDTO
 
     product_data = ProductCreateDTO(
         sku="BUSINESS-FLOW-001",

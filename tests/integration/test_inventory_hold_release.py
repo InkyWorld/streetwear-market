@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.schemas import (
+from app.application.dto import (
     BrandCreateDTO,
     CatalogCreateDTO,
     CustomerCreateDTO,
@@ -10,24 +10,17 @@ from app.schemas import (
     OrderItemCreateDTO,
     ProductCreateDTO,
 )
-from app.services import (
-    BrandService,
-    CatalogService,
-    CustomerService,
-    InventoryService,
-    OrderService,
-    ProductService,
-)
+from app.presentation.composition_root import CompositionRoot
 
 
 @pytest.mark.asyncio
 async def test_manual_release_endpoint_flow(test_db):
-    brand_service = BrandService(test_db)
-    catalog_service = CatalogService(test_db)
-    product_service = ProductService(test_db)
-    customer_service = CustomerService(test_db)
-    order_service = OrderService(test_db)
-    inventory_service = InventoryService(test_db)
+    brand_service = CompositionRoot.brand_service(test_db)
+    catalog_service = CompositionRoot.catalog_service(test_db)
+    product_service = CompositionRoot.product_service(test_db)
+    customer_service = CompositionRoot.customer_service(test_db)
+    order_service = CompositionRoot.order_service(test_db)
+    inventory_service = CompositionRoot.inventory_service(test_db)
 
     brand = await brand_service.create_brand(BrandCreateDTO(name="Inv Brand", description="Inv"))
     category = await catalog_service.create_catalog(CatalogCreateDTO(name="Inv Cat", description="Inv"))
@@ -42,7 +35,11 @@ async def test_manual_release_endpoint_flow(test_db):
         )
     )
     customer = await customer_service.create_customer(
-        CustomerCreateDTO(full_name="Inv User", email="inv-user@example.com")
+        CustomerCreateDTO(
+            full_name="Inv User",
+            email="inv-user@example.com",
+            phone="+10000000001",
+        )
     )
 
     order = await order_service.create_order(

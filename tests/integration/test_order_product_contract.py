@@ -3,7 +3,7 @@
 import pytest
 
 from app.domain.exceptions import NotFoundError, ValidationError
-from app.schemas import OrderCreateDTO, OrderItemCreateDTO, ProductUpdateDTO
+from app.application.dto import OrderCreateDTO, OrderItemCreateDTO, ProductUpdateDTO
 
 
 @pytest.mark.asyncio

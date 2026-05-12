@@ -3,10 +3,12 @@
 import asyncio
 
 import pytest
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from app.models import Base
-from app.repositories import (
+from app.core.database import get_db_session
+from app.infrastructure.persistence.models import Base
+from app.infrastructure.persistence.repositories import (
     BrandRepository,
     CatalogRepository,
     CustomerRepository,
@@ -14,7 +16,8 @@ from app.repositories import (
     OrderRepository,
     ProductRepository,
 )
-from app.services import BrandService, CatalogService, CustomerService, OrderService, ProductService
+from app.presentation.composition_root import CompositionRoot
+from main import app
 
 # Use test database URL
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -48,33 +51,49 @@ async def test_db():
 
 
 @pytest.fixture
+async def api_client(test_db):
+    """ASGI test client with overridden database dependency."""
+
+    async def _get_test_db_session():
+        yield test_db
+
+    app.dependency_overrides[get_db_session] = _get_test_db_session
+    transport = ASGITransport(app=app)
+
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        yield client
+
+    app.dependency_overrides.pop(get_db_session, None)
+
+
+@pytest.fixture
 async def product_service(test_db):
     """Create product service with test database."""
-    return ProductService(test_db)
+    return CompositionRoot.product_service(test_db)
 
 
 @pytest.fixture
 async def brand_service(test_db):
     """Create brand service with test database."""
-    return BrandService(test_db)
+    return CompositionRoot.brand_service(test_db)
 
 
 @pytest.fixture
 async def catalog_service(test_db):
     """Create catalog service with test database."""
-    return CatalogService(test_db)
+    return CompositionRoot.catalog_service(test_db)
 
 
 @pytest.fixture
 async def customer_service(test_db):
     """Create customer service with test database."""
-    return CustomerService(test_db)
+    return CompositionRoot.customer_service(test_db)
 
 
 @pytest.fixture
 async def order_service(test_db):
     """Create order service with test database."""
-    return OrderService(test_db)
+    return CompositionRoot.order_service(test_db)
 
 
 @pytest.fixture
@@ -116,7 +135,7 @@ async def order_item_repository(test_db):
 @pytest.fixture
 async def sample_brand(brand_service):
     """Create sample brand."""
-    from app.schemas import BrandCreateDTO
+    from app.application.dto import BrandCreateDTO
 
     return await brand_service.create_brand(BrandCreateDTO(name="Nike", description="Sportswear"))
 
@@ -124,7 +143,7 @@ async def sample_brand(brand_service):
 @pytest.fixture
 async def sample_catalog(catalog_service):
     """Create sample catalog."""
-    from app.schemas import CatalogCreateDTO
+    from app.application.dto import CatalogCreateDTO
 
     return await catalog_service.create_catalog(
         CatalogCreateDTO(name="Sneakers", description="Athletic footwear")
@@ -134,7 +153,7 @@ async def sample_catalog(catalog_service):
 @pytest.fixture
 async def sample_product(product_service, sample_brand, sample_catalog):
     """Create sample product."""
-    from app.schemas import ProductCreateDTO
+    from app.application.dto import ProductCreateDTO, SeasonEnum
 
     return await product_service.create_product(
         ProductCreateDTO(
@@ -145,7 +164,7 @@ async def sample_product(product_service, sample_brand, sample_catalog):
             currency="USD",
             size="10",
             color="White",
-            season="SS",
+            season=SeasonEnum.SPRING_SUMMER,
             in_stock=True,
             category_id=sample_catalog.id,
             brand_id=sample_brand.id,
@@ -156,7 +175,7 @@ async def sample_product(product_service, sample_brand, sample_catalog):
 @pytest.fixture
 async def sample_customer(customer_service):
     """Create sample customer."""
-    from app.schemas import CustomerCreateDTO
+    from app.application.dto import CustomerCreateDTO
 
     return await customer_service.create_customer(
         CustomerCreateDTO(
@@ -170,7 +189,7 @@ async def sample_customer(customer_service):
 @pytest.fixture
 async def sample_order(order_service, sample_customer, sample_product):
     """Create sample order."""
-    from app.schemas import OrderCreateDTO, OrderItemCreateDTO
+    from app.application.dto import OrderCreateDTO, OrderItemCreateDTO
 
     return await order_service.create_order(
         OrderCreateDTO(

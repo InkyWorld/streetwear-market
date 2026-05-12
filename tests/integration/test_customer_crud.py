@@ -3,7 +3,7 @@
 import pytest
 
 from app.domain.exceptions import ConflictError, NotFoundError, ValidationError
-from app.schemas import CustomerCreateDTO
+from app.application.dto import CustomerCreateDTO
 
 
 @pytest.mark.asyncio

@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.schemas import (
+from app.application.dto import (
     CustomerCreateDTO,
     CustomerReadDTO,
     OrderCreateDTO,

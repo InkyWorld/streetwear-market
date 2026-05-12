@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from app.schemas import (
+from app.application.dto import (
     BrandCreateDTO,
     CatalogCreateDTO,
     CustomerCreateDTO,
@@ -13,24 +13,17 @@ from app.schemas import (
     ProductCreateDTO,
     PromotionCreateDTO,
 )
-from app.services import (
-    BrandService,
-    CatalogService,
-    CustomerService,
-    OrderService,
-    ProductService,
-    PromotionService,
-)
+from app.presentation.composition_root import CompositionRoot
 
 
 @pytest.mark.asyncio
 async def test_time_and_category_promotion_in_breakdown(test_db):
-    brand_service = BrandService(test_db)
-    catalog_service = CatalogService(test_db)
-    product_service = ProductService(test_db)
-    customer_service = CustomerService(test_db)
-    order_service = OrderService(test_db)
-    promo_service = PromotionService(test_db)
+    brand_service = CompositionRoot.brand_service(test_db)
+    catalog_service = CompositionRoot.catalog_service(test_db)
+    product_service = CompositionRoot.product_service(test_db)
+    customer_service = CompositionRoot.customer_service(test_db)
+    order_service = CompositionRoot.order_service(test_db)
+    promo_service = CompositionRoot.promotion_service(test_db)
 
     brand = await brand_service.create_brand(BrandCreateDTO(name="Promo Brand", description="Promo"))
     sneakers = await catalog_service.create_catalog(
@@ -47,7 +40,12 @@ async def test_time_and_category_promotion_in_breakdown(test_db):
         )
     )
     customer = await customer_service.create_customer(
-        CustomerCreateDTO(full_name="Promo User", email="promo-user@example.com", loyalty_tier="silver")
+        CustomerCreateDTO(
+            full_name="Promo User",
+            email="promo-user@example.com",
+            phone="+10000000021",
+            loyalty_tier="silver",
+        )
     )
 
     now = datetime.now(timezone.utc).replace(tzinfo=None)

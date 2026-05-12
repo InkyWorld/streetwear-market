@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime
 
-from app.models import Customer, Order, OrderItem
+from app.infrastructure.persistence.models import Customer, Order, OrderItem
 
 
 def test_customer_model_creation():

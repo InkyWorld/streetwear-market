@@ -3,7 +3,7 @@
 import pytest
 
 from app.domain.exceptions import NotFoundError, ValidationError
-from app.schemas import (
+from app.application.dto import (
     BrandCreateDTO,
     CatalogCreateDTO,
     CustomerCreateDTO,
