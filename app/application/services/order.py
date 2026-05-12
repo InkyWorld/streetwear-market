@@ -1,13 +1,12 @@
 """Order service."""
 
-from typing import List
+from typing import TYPE_CHECKING, List
 from collections.abc import Callable
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dto import OrderCreateDTO, OrderListItemDTO, OrderReadDTO
 from app.application.orders import CreateOrderCommand, CreateOrderItemCommand
-from app.application.orders.create_order import CreateOrderCommandHandler
 from app.application.services.inventory import InventoryService
 from app.application.ports.persistence import (
     CustomerRepositoryPort,
@@ -19,6 +18,9 @@ from app.domain.enums import LoyaltyTier
 from app.domain.exceptions import NotFoundError
 from app.domain.workflow import OrderWorkflowValidator
 
+if TYPE_CHECKING:
+    from app.application.orders.create_order import CreateOrderCommandHandler
+
 
 class OrderService:
     def __init__(
@@ -29,7 +31,7 @@ class OrderService:
         customer_repo: CustomerRepositoryPort,
         product_repo: ProductRepositoryPort,
         inventory_service: InventoryService,
-        create_order_handler_factory: Callable[[AsyncSession], CreateOrderCommandHandler],
+        create_order_handler_factory: Callable[[AsyncSession], "CreateOrderCommandHandler"],
     ):
         self.session = session
         self.order_repo = order_repo
