@@ -6,8 +6,6 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class PromotionCreateDTO(BaseModel):
-    """Promotion create schema."""
-
     name: str = Field(..., min_length=1, max_length=120)
     promotion_type: str = Field(..., pattern="^(time|category)$")
     discount_percentage: float = Field(..., gt=0, le=1)
@@ -24,8 +22,6 @@ class PromotionCreateDTO(BaseModel):
 
 
 class PromotionUpdateDTO(BaseModel):
-    """Schema for updating a promotion."""
-
     name: str | None = Field(default=None, min_length=1, max_length=120)
     promotion_type: str | None = Field(default=None, pattern="^(time|category)$")
     discount_percentage: float | None = Field(default=None, gt=0, le=1)
@@ -36,8 +32,6 @@ class PromotionUpdateDTO(BaseModel):
 
 
 class PromotionReadDTO(BaseModel):
-    """Promotion read schema."""
-
     id: int
     name: str
     promotion_type: str

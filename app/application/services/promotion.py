@@ -4,18 +4,16 @@ from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.dto import PromotionCreateDTO, PromotionReadDTO, PromotionUpdateDTO
+from app.application.ports.persistence import PromotionRepositoryPort
 from app.domain.exceptions import NotFoundError, ValidationError
 from app.domain.validators import validate_promotion_window
-from app.repositories import PromotionRepository
-from app.schemas import PromotionCreateDTO, PromotionReadDTO, PromotionUpdateDTO
 
 
 class PromotionService:
-    """Application service for promotion CRUD and activation logic."""
-
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, repo: PromotionRepositoryPort):
         self.session = session
-        self.repo = PromotionRepository(session)
+        self.repo = repo
 
     async def create_promotion(self, dto: PromotionCreateDTO) -> PromotionReadDTO:
         validate_promotion_window(dto.active_from, dto.active_to)
@@ -65,3 +63,8 @@ class PromotionService:
         if not deleted:
             raise NotFoundError(f"Promotion with id {promotion_id} not found")
         await self.session.commit()
+
+    async def list_active_promotions(self) -> list[PromotionReadDTO]:
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        promotions = await self.repo.get_active(now)
+        return [PromotionReadDTO.model_validate(item) for item in promotions]

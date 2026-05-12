@@ -1,29 +1,29 @@
-from app.schemas.inventory import InventoryReleaseOrderDTO, InventoryReleaseResultDTO
-"""Pydantic schemas for request/response validation."""
+"""Application DTO contracts."""
 
-from app.schemas.brand import BrandCreateDTO, BrandReadDTO, BrandUpdateDTO
-from app.schemas.catalog import CatalogCreateDTO, CatalogListDTO, CatalogReadDTO, CatalogUpdateDTO
-from app.schemas.customer import (
+from app.application.dto.brand import BrandCreateDTO, BrandReadDTO, BrandUpdateDTO
+from app.application.dto.catalog import CatalogCreateDTO, CatalogListDTO, CatalogReadDTO, CatalogUpdateDTO
+from app.application.dto.customer import (
     CustomerCreateDTO,
     CustomerListItemDTO,
     CustomerReadDTO,
     CustomerUpdateDTO,
 )
-from app.schemas.order import (
+from app.application.dto.inventory import InventoryReleaseOrderDTO, InventoryReleaseResultDTO
+from app.application.dto.order import (
     OrderCreateDTO,
     OrderItemCreateDTO,
     OrderItemReadDTO,
     OrderListItemDTO,
     OrderReadDTO,
 )
-from app.schemas.product import (
+from app.application.dto.product import (
     ProductCreateDTO,
     ProductListItemDTO,
     ProductReadDTO,
     ProductUpdateDTO,
     SeasonEnum,
 )
-from app.schemas.promotion import PromotionCreateDTO, PromotionReadDTO, PromotionUpdateDTO
+from app.application.dto.promotion import PromotionCreateDTO, PromotionReadDTO, PromotionUpdateDTO
 
 __all__ = [
     "BrandCreateDTO",

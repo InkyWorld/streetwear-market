@@ -4,17 +4,17 @@ from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.dto import BrandCreateDTO, BrandReadDTO, BrandUpdateDTO
+from app.application.ports.persistence import BrandRepositoryPort
 from app.domain.exceptions import NotFoundError
-from app.repositories import BrandRepository
-from app.schemas import BrandCreateDTO, BrandReadDTO, BrandUpdateDTO
 
 
 class BrandService:
     """Service for brand operations."""
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, brand_repo: BrandRepositoryPort):
         self.session = session
-        self.brand_repo = BrandRepository(session)
+        self.brand_repo = brand_repo
 
     async def get_brand(self, brand_id: int) -> BrandReadDTO:
         """Get brand by id."""
@@ -30,9 +30,7 @@ class BrandService:
 
     async def create_brand(self, brand_data: BrandCreateDTO) -> BrandReadDTO:
         """Create a new brand."""
-        brand = await self.brand_repo.create(
-            name=brand_data.name, description=brand_data.description
-        )
+        brand = await self.brand_repo.create(name=brand_data.name, description=brand_data.description)
         await self.session.commit()
         return BrandReadDTO.model_validate(brand)
 

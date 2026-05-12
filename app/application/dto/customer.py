@@ -7,8 +7,6 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class CustomerCreateDTO(BaseModel):
-    """Schema for creating a customer."""
-
     full_name: str = Field(..., min_length=1, max_length=200)
     email: EmailStr
     phone: Optional[str] = Field(None, max_length=20)
@@ -16,8 +14,6 @@ class CustomerCreateDTO(BaseModel):
 
 
 class CustomerUpdateDTO(BaseModel):
-    """Schema for updating a customer."""
-
     full_name: str | None = Field(default=None, min_length=1, max_length=200)
     email: EmailStr | None = None
     phone: Optional[str] = Field(None, max_length=20)
@@ -25,8 +21,6 @@ class CustomerUpdateDTO(BaseModel):
 
 
 class CustomerReadDTO(BaseModel):
-    """Schema for reading a customer."""
-
     id: int
     full_name: str
     email: str
@@ -39,8 +33,6 @@ class CustomerReadDTO(BaseModel):
 
 
 class CustomerListItemDTO(BaseModel):
-    """Schema for listing customers."""
-
     id: int
     full_name: str
     email: str

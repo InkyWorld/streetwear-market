@@ -8,15 +8,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class SeasonEnum(str, Enum):
-    """Season enumeration."""
-
     SPRING_SUMMER = "SS"
     AUTUMN_WINTER = "AW"
 
 
 class ProductCreateDTO(BaseModel):
-    """Schema for creating a product."""
-
     sku: str = Field(..., min_length=1, max_length=50)
     name: str = Field(..., min_length=1, max_length=200)
     description: str = Field(default="", max_length=1000)
@@ -39,8 +35,6 @@ class ProductCreateDTO(BaseModel):
 
 
 class ProductUpdateDTO(BaseModel):
-    """Schema for updating a product."""
-
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=1000)
     price: Optional[float] = Field(None, gt=0)
@@ -54,8 +48,6 @@ class ProductUpdateDTO(BaseModel):
 
 
 class ProductReadDTO(BaseModel):
-    """Schema for reading a product."""
-
     id: int
     sku: str
     name: str
@@ -76,8 +68,6 @@ class ProductReadDTO(BaseModel):
 
 
 class ProductListItemDTO(BaseModel):
-    """Schema for listing products."""
-
     id: int
     sku: str
     name: str

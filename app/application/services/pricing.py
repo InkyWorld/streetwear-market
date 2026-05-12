@@ -11,14 +11,13 @@ from app.domain.pricing_rules import (
     TimePromoRule,
     calculate_subtotal,
 )
-from app.models import Promotion
-from app.repositories import PromotionRepository
+from app.application.ports.persistence import PromotionRepositoryPort
 
 
 class PricingService:
     """Service that computes final price with traceable breakdown."""
 
-    def __init__(self, promotion_repository: PromotionRepository):
+    def __init__(self, promotion_repository: PromotionRepositoryPort):
         self.promotion_repository = promotion_repository
 
     async def build_breakdown(
@@ -48,9 +47,7 @@ class PricingService:
             "items": items,
         }
 
-    def _apply_promotions(
-        self, items: list[dict[str, float | int]], subtotal: float, promotions: list[Promotion]
-    ):
+    def _apply_promotions(self, items: list[dict[str, float | int]], subtotal: float, promotions: list):
         if not promotions:
             return []
 

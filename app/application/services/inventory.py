@@ -4,17 +4,25 @@ from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.ports.persistence import (
+    InventoryReservationRepositoryPort,
+    ProductRepositoryPort,
+)
 from app.domain.policies import InventoryHoldPolicy
-from app.repositories import InventoryReservationRepository, ProductRepository
 
 
 class InventoryService:
     """Service for inventory hold/release operations."""
 
-    def __init__(self, session: AsyncSession):
+    def __init__(
+        self,
+        session: AsyncSession,
+        reservation_repo: InventoryReservationRepositoryPort,
+        product_repo: ProductRepositoryPort,
+    ):
         self.session = session
-        self.reservation_repo = InventoryReservationRepository(session)
-        self.product_repo = ProductRepository(session)
+        self.reservation_repo = reservation_repo
+        self.product_repo = product_repo
 
     async def hold_items(
         self, order_id: int | None, items: list[dict[str, int | float]]
